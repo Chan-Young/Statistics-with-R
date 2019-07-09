@@ -1,0 +1,359 @@
+---
+title: "Exploring the BRFSS data"
+date: "`r Sys.Date()`"
+output: 
+    html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+* * *
+
+
+## Part 1: Data
+
+The Behavioral Risk Factor Surveillance System(BRFSS) is a project that proceeded by the states in the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC). Data is collected from all 50 states including the District of Columbia, Puerto Rico, and Guam. The system designed to measure behavioural risk factors for adults population who are 18 years old and older.
+
+Sampling is conducted to a landline telephone and cellular telephone respondents. Landline telephone respondents used to measure household sampling and it collected information by interviewing all the adult resident. Cellular telephone respondents measured as a private residence or college housing, in other words, single adult households.
+
+BRFSS could be generalized to all adults in the United State(US) since it randomly collected adults who household members throughout 50 states in the United States(US). Nevertheless, it could not generalize to the global stance mainly because of the circumstance of the telephone system could be different from country to country. On top of that, the BRFSS data is observational survey not experimental thus, we can conclude that this shows only correlation, not causation.
+
+
+* * *
+
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+What state show the best health condition and why?
+
+According to analysing the data, it found out that Guam is the best healthy state in the United State. To find out reasons for the result, I picked 5 factors to explain it. As a result, the majority of respondent have 6 to 8 hours sleep as well as over 70 per cent do not smoke. Moreover, more than 80 per cent, the respondent does not have asthma and arthritis and only less than 40 per cent of respondent smokes. In this sense, five factors could be reliable variables to explain why Guam is the best states in terms of health condition.
+
+
+**Research quesion 2:**
+
+Does smokers in Guam do excerise?
+
+To find out does smokers in Guam do exercise, I did analysing from the number of respondent do exercise in past 30 days in the United States and how long they spend on it. It found out that there are more people who do exercise in all states and near 70 per cent of smokers do exercise than who do not smoke even though, the majority of people spend less than 1 hour on it. In Guam, compare to non-smokers, twice of smokers do exercise and approximately 75 per cent of smoker spend 2hours on exercising.
+
+
+**Research quesion 3:**
+
+Does smokers in the United States more likely drink alcohol than non-smokers?
+
+The number of smokers in the United States who drink alcohol days per week is twice more than who dinks days in the past 30 days. Also non-smkokers shows that more numbers in days per week than days in the past 30 days
+
+
+* * *
+
+
+## Part 3: Exploratory data analysis
+
+**Research quesion 1:**
+
+### 1. What state shows the best general health condition?
+```{r}
+BestHealthState <- brfss2013 %>% 
+  select(X_state, poorhlth) %>% 
+  filter(X_state != '0' & X_state != '80') %>%
+  group_by(X_state, poorhlth) %>%
+  summarise(n = n()) 
+
+BestHealthState         
+
+ggplot(BestHealthState, aes(X_state, n)) +
+  geom_bar(stat="identity") +
+  labs(x = '', y = 'Count') +
+  labs(title = 'Poor health condition across the United States')  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .05, color='blue')) 
+```
+
+* Guam is the best state in the United State in generl health condition.
+
+
+### 1-2. Is this due to sleep hours?
+```{r}
+TimeSleep <- brfss2013 %>%
+  select(X_state, sleptim1) %>%
+  filter(X_state %in% 'Guam') %>%
+  filter(!is.na(sleptim1)) %>%
+  group_by(sleptim1) %>%
+  summarise(count = n())
+
+TimeSleep
+
+ggplot(TimeSleep, aes(sleptim1, count)) +
+  geom_bar(stat="identity") +
+  labs(x = 'Hours', y = 'Count') +
+  labs(title = 'Number of sleeping hours of respondent from Guam') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```
+
+* The majority of resident in Guam sleeps 6 to 8 hours.
+
+
+### 1-3. Is this due to the excersice?
+```{r}
+Exercise <- brfss2013 %>%
+  select(X_state, exerany2) %>%
+  filter(X_state %in% 'Guam') %>%
+  filter(!is.na(exerany2)) %>%
+  group_by(exerany2) %>%
+  summarise(n = n())
+
+Exercise
+
+ggplot(Exercise, aes(exerany2, n)) +
+  geom_bar(stat="identity", width=0.5) +
+  labs(x = 'Exercise In Past 30 Days', y = 'Count') +
+  labs(title = 'Number of respondent in Guam do exercise') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) 
+```
+
+* Approximatly 70 percent of Guam respondent did exercise in past 30 days
+
+
+### 1-4. Does asthma effect to the result? 
+```{r}
+Asthma <- brfss2013 %>%
+  select(X_state, asthma3) %>%
+  filter(X_state %in% 'Guam') %>%
+  filter(!is.na(asthma3)) %>%
+  group_by(asthma3) %>%
+  summarise(n = n())
+
+Asthma
+
+ggplot(Asthma, aes(x = asthma3, y = n)) +
+  geom_bar(stat="identity", width=0.5) +
+  labs(x = 'Ever Told Had Asthma', y = 'Count') +
+  labs(title = 'Number of respondent in Guam', subtitle = 'ever had Asthma') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) 
+```
+
+* Approximatly 89 percent of Guam respondent do not have asthma
+
+
+### 1-5. Does arthritis effect to the result?
+```{r}
+# 1-5. Does arthritis effect to the result?
+Arthritis <- brfss2013 %>%
+  select(X_state, havarth3) %>%
+  filter(X_state %in% 'Guam') %>%
+  filter(!is.na(havarth3)) %>%
+  group_by(havarth3) %>%
+  summarise(n = n())
+
+Arthritis
+
+ggplot(Arthritis, aes(havarth3, n)) +
+  geom_bar(stat="identity", width=0.5) +
+  labs(x = 'Told Have Arthritis', y = 'Count') +
+  labs(title = 'Number of respondent in Guam', subtitle ='ever had Arthritis') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```
+
+* Approximatly 84 percent of Guam respondent do not have arthritis
+
+
+### 1-6. Does smoking effect to the result?
+```{r}
+Cigarettes100 <- brfss2013 %>%
+  select(X_state, smoke100) %>%
+  filter(X_state %in% 'Guam') %>%
+  filter(!is.na(smoke100)) %>%
+  group_by(smoke100) %>%
+  summarise(n = n())
+
+Cigarettes100
+
+ggplot(Cigarettes100, aes(smoke100, n)) +
+  geom_bar(stat="identity", width=0.5) +
+  labs(x = 'Smoked At Least 100 Cigarettes', y = 'Count') +
+  labs(title = 'Number of respondent in Guam', subtitle = 'smoked at least 100 cigarettes') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```
+
+* Approximatly 60 percent of Guam respondent do not smoke
+
+
+
+**Research quesion 2:**
+
+### 2-1. How frequently respondent exercise? 
+```{r}
+GenExFre <- brfss2013 %>%
+  select(X_state, exerany2) %>%
+  filter(!is.na(exerany2)) %>%
+  group_by(X_state, exerany2) %>%
+  summarise(n = n())
+
+GenExFre
+
+ggplot(GenExFre, aes(X_state, n)) +
+  geom_bar(stat="identity", aes(fill = exerany2)) +
+  labs(x = '', y = 'Count') +
+  labs(title = 'Number of respondent exercise in Past 30 Days', subtitle = 'across the United States')  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .05, color='black'),
+        plot.title = element_text(size = 13)) 
+```
+
+* All the 50 states indicates the number of respondent who do exercise in past 30 days is more than who do not excercise.
+
+
+### 2-2. How frequently smokers excersice?
+```{r}
+GenSmoExFre <- brfss2013 %>%
+  select(smoke100, exerany2) %>%
+  na.omit() %>%
+  filter(smoke100 != 'No') %>%
+  group_by(smoke100, exerany2) %>%
+  summarise(n = n())
+
+GenSmoExFre
+
+ggplot(GenSmoExFre, aes(exerany2, n)) +
+  geom_bar(stat="identity", width=0.5) +
+  labs(x = 'Exercise In Past 30 Days', y = 'Count') +
+  labs(title = 'Number of smokers in the United States do exercise') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) 
+```
+
+* Nearly 70 percent of smokers do excercise.
+
+
+### 2-3. How long respondent exercise?
+```{r}
+hourBreaks <- c(0:24)
+GenExHours <- brfss2013 %>%
+  select(X_state, exerhmm1) %>% 
+  filter(!is.na(exerhmm1)) %>%
+  mutate(exerhmm1 = exerhmm1 / 60) %>% 
+  mutate(Hours = cut(exerhmm1, breaks=hourBreaks, labels=FALSE)) %>% 
+  group_by(Hours) %>%
+  summarise(n = n())
+
+GenExHours
+
+ggplot(GenExHours, aes(Hours, n)) +
+  geom_bar(stat="identity", width=0.3) +
+  labs(x = 'Hours of exercise', y = 'Count') +
+  labs(title = 'Hours of spending in exercising across the United States') +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+```
+
+* Total of 323,380 respondent, more than half of people do excersice less than 1 hours and approximately, 75 percent of people do excersice less than 2 hours
+
+
+### 2-4. How long smokers excersice?
+```{r}
+hourBreaks <- c(0:24)
+GenSmoExHours <- brfss2013 %>%
+  select(smoke100, exerhmm1) %>%
+  na.omit() %>%
+  #filter(smoke100 != 'No') %>%
+  mutate(exerhmm1 = exerhmm1 / 60) %>% 
+  mutate(Hours = cut(exerhmm1, breaks=hourBreaks, labels=FALSE)) %>% 
+  group_by(Hours, smoke100) %>%
+  summarise(n = n())
+
+GenSmoExHours
+
+ggplot(GenSmoExHours, aes(Hours, n)) +
+  geom_bar(stat="identity", aes(fill = smoke100)) +
+  labs(x = 'Hours of exercise', y = 'Count') +
+  labs(title = 'Number of smokers exercise in Past 30 Days', subtitle = 'across the United States')  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .05, color='black'),
+        plot.title = element_text(size = 13)) 
+```
+
+* Total of 137,334 respondent of smokers who do excercise, nearly 55 percent spend less than 1 hours in excercising and approximatly 75 percent of people do excercise less than 2hours.
+
+
+### 2-5. For those who smokers in Guam do excercies oftenltly?
+```{r}
+GuamSmoExFre <- brfss2013 %>%
+  select(X_state, smoke100, exerany2) %>% 
+  filter(X_state %in% 'Guam') %>%
+  #filter(smoke100 != 'No') %>%
+  na.omit() %>%
+  group_by(smoke100, exerany2) %>%
+  summarise(n = n())
+
+GuamSmoExFre
+
+ggplot(GuamSmoExFre, aes(exerany2, n)) +
+  geom_bar(stat="identity", aes(fill = smoke100), width=0.3) +
+  labs(x = 'Whether exercise in past 30 days', y = 'Count') +
+  labs(title = 'Number of smokers in Guam do exercise', subtitle = 'in past 30 days')  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .05, color='black'),
+        plot.title = element_text(size = 13)) 
+```
+
+* Almost twice of smokers who residence in Guam do excerise than the number of smokers who do not do excercise
+
+
+### 2-6. For those who smokers in Guam how long do they excercies?
+```{r}
+hourBreaks <- c(0:24)
+GuamSmoExHoures <- brfss2013 %>%
+  select(X_state, smoke100, exerhmm1) %>% 
+  filter(X_state %in% 'Guam') %>%
+  na.omit() %>%
+  mutate(exerhmm1 = exerhmm1 / 60) %>% 
+  mutate(Hours = cut(exerhmm1, breaks=hourBreaks, labels=FALSE)) %>% 
+  group_by(smoke100, Hours) %>%
+  summarise(n = n())
+
+GuamSmoExHoures
+
+ggplot(GuamSmoExHoures, aes(Hours, n)) +
+  geom_bar(stat="identity", aes(fill = smoke100)) +
+  labs(x = 'Hours of exercise', y = 'Count') +
+  labs(title = 'Hours of smokers in Guam do exercise', subtitle = 'in past 30 days')  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .05, color='black'),
+        plot.title = element_text(size = 13)) 
+```
+
+* Total of 482 respondent who do smoke and excersice, near half of people spend less than 1 hours in excersicing and approximatly 75 percent of people spend 2 hours in excercising.
+
+
+
+**Research quesion 3:**
+
+### 3. Does smokers in the United States more likely drink alcohol than non-smokers?
+```{r}
+SmoAlc <- brfss2013 %>%
+  select(smoke100, alcday5) %>%
+  na.omit() %>%
+  mutate(how_often =ifelse(alcday5 >201,'days in the past 30 days','days per week')) %>%
+  group_by(smoke100, how_often) %>%
+  summarise(n=n())
+
+SmoAlc
+
+ggplot(SmoAlc, aes(how_often, n)) +
+  geom_bar(stat="identity", aes(fill = smoke100)) +
+  labs(x = 'Frequency of drink', y = 'Count') +
+  labs(title = 'Probability of smokers drink alcohol')  +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1, vjust = .5, color='black'))
+```
+
+* The number of smokers in the United States who drink alcohol days per week is twice more than who dinks days in the past 30 days. Also non-smkokers shows that more numbers in days per week than days in the past 30 days
