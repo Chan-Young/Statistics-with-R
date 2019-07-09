@@ -1,0 +1,153 @@
+---
+title: "Introduction to Inference"
+week 2 :Introduction to data
+---
+
+## Getting stated
+
+## load packages
+
+```{r setup}
+library(statsr)
+library(dplyr)
+# filter(), arrange(), select(), distinct(), mutate()
+# summarise(), sample_n()
+library(ggplot2)
+```
+
+
+### Data
+
+```{r }
+# Departure delays in flights to Raleigh-Durham
+ggplot(data=nycflights, aes(x = dep_delay)) +
+  geom_histogram(binwidth = 150) #geom = geometric object
+
+# Departure delays headed to RUB only -> filter
+rdu_flights <- nycflights %>% filter(dest == 'RDU')
+ggplot(data = rdu_flights, aes(x = dep_delay))+
+  geom_histogram()
+
+# numerical summaries
+# mean, median, sd, var, IQR, range, min, max
+rdu_flights %>% summarise(mean_dd = mean(dep_delay),
+                          sd_dd = sd(dep_delay), n=n())
+```
+
+
+## Questions 
+
+## Q1. Create a new data frame that includes flights headed to SFO in February, and save this data frame as `sfo_feb_flights`. How many flights meet these criteria? 
+
+```{r }
+# fligts headed to San Francisco
+sfo_feb_flights <- nycflights %>% filter(dest == 'SFO', month == 2)
+nrow(sfo_feb_flights) 
+```
+
+
+## Q2. 2. Make a histogram and calculate appropriate summary statistics for **arrival** delays of `sfo_feb_flights`.
+
+```{r}
+ggplot(data = sfo_feb_flights, aes(x=arr_delay)) +
+  geom_histogram(bins=100)
+
+# statistics for various group in data frame -> group_by
+rdu_flights %>%
+  group_by(origin) %>%
+  summarise(mean_dd = mean(dep_delay), sd_dd = sd(dep_delay), n = n())
+```
+
+
+## Q3.  Calculate the median and interquartile range for `arr_delay`s of flights in the `sfo_feb_flights` data frame, grouped by carrier. Which carrier is the has the hights IQR of arrival delays?
+
+```{r}
+# sf0-feb-fligts-arrival-delays-carrier
+sfo_feb_flights %>% 
+  group_by(carrier) %>% 
+  summarise(median = median(arr_delay),IQR = IQR(arr_delay)) %>% 
+  arrange(desc(IQR)) # order
+```
+
+
+## Q4. Which month has the highest average departure delay from an NYC airport? 
+
+```{r}
+# mean-dep-delay-months
+nycflights %>%
+  group_by(month) %>%
+  summarise(mean_dd = mean(dep_delay)) %>%
+  arrange(desc(mean_dd))
+```
+
+
+## Q5. Which month has the highest median departure delay from an NYC airport?
+
+```{r}
+# highest-median-dep-delay-month -> 12
+nycflights %>%
+  group_by(month) %>%
+  summarise(median_dd = median(dep_delay)) %>%
+  arrange(desc(median_dd))
+```
+
+
+## Q6. Is the mean or the median a more reliable measure for deciding which month(s) to avoid flying if you really dislike delayed flights, and why
+
+```{r}
+# delay-month-box
+ggplot(nycflights, aes(x=factor(month), y=dep_delay))+
+  geom_boxplot()
+```
+
+
+## Q7. time departure percentage?
+
+```{r}
+# which airport has the best on time departure rate
+
+# step1. classify each flight as "on time" or "delayed" -> mutate
+nycflights <- nycflights %>%
+  mutate(dep_type = ifelse(dep_delay < 5, 'on time', 'delayed'))
+          # mutate : create new variable
+
+# step 2. group flights by origin airport,
+# then calculate on time departure rates for each origin airport,
+# and finally arrange the airports in descending order for on time departure percentage.
+nycflights %>%
+  group_by(origin) %>%
+  summarise(ot_dep_rate = sum(dep_type == 'on time') / n()) %>%
+  arrange(desc(ot_dep_rate))
+
+ggplot(data = nycflights, aes(x = origin, fill = dep_type))+
+  geom_bar()
+```
+
+
+# # Q8. What is the tail number of the plane with the fastest average speed?
+
+```{r}
+nycflights <- nycflights %>%
+  mutate(avg_speed = distance / air_time) %>%
+  arrange(desc(avg_speed))
+select(nycflights, avg_speed, tailnum)
+```
+
+
+## Q9. Make a scatterplot of `avg_speed` vs. `distance`. 
+
+```{r}
+ggplot(data = nycflights, aes(y=avg_speed, x=distance))+
+  geom_point()
+```
+
+
+# # Q10. "on time" if it gets to the destination on time or earlier than expected, regardless of any departure delays. Mutate the data frame to create a new variable called `arr_type` with levels `"on time"` and "delayed" Then, determine the on time arrival percentage based on whether the flight departed on time or not.'  What proportion of flights  that were `"delayed"` departing arrive `"on time"`?
+
+```{r}
+nycflights <- nycflights %>%
+  mutate(arr_type = ifelse(arr_delay <= 0, 'on time', 'delayed'))
+nycflights %>%
+  group_by(dep_type) %>%
+  summarise(ot_arr_rate = sum(arr_type == 'on time') / n())
+```
