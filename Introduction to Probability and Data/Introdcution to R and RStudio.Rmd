@@ -1,0 +1,85 @@
+---
+title: "About Introduction to Probability and Data"
+Week 1 : Introdcution to R and RStudio
+---
+
+## Getting Started
+
+## Load package
+
+```{r setup, include=FALSE}
+install.packages("devtools")
+install.packages("dplyr")
+install.packages("rmarkdown")
+install.packages("ggplot2")
+install.packages("ggplot")
+install.packages("broom")
+install.packages("gridExtra")
+install.packages("shiny")
+install.packages("cubature")
+library(devtools)
+
+install.packages("remotes")
+remotes::install_github("StatsWithR/statsr")
+
+library(dplyr)
+library(ggplot2)
+library(statsr)
+```
+
+
+## Data
+
+```{r Data}
+data(arbuthnot)  # r load-abrbuthnot-data
+arbuthnot        # r view-data
+dim(arbuthnot)   # dimensions of this data frame
+names(arbuthnot) # names of columns, variables
+
+arbuthnot$year
+arbuthnot$boys
+arbuthnot$girls
+arbuthnot$boys + arbuthnot$girls
+```
+
+
+## plot 1
+
+```{r}
+ggplot(data = arbuthnot, aes(x = year, y = girls)) + geom_point()
+
+# install.packages("magrittr") # only needed the first time you use it
+library(magrittr) # need to run every time you start R and want to use %>%
+library(dplyr)    # alternative, this also loads %>%
+
+arbuthnot <- arbuthnot %>% mutate(total = boys + girls)
+# %>% pipe, mutat : adding new variable
+
+ggplot(data = arbuthnot, aes(x = year, y = total)) + geom_line()
+ggplot(data = arbuthnot, aes(x = year, y = total)) + 
+  geom_line() + geom_point()
+# ggplot(data = arbuthnot, aes(x = year, y = boys) + geom_line()
+
+arbuthnot <- arbuthnot %>% mutate(more_boys = boys > girls)
+```
+
+
+## plot 2
+
+```{r}
+data(present)
+View(present)
+range(present$year)
+
+present <- present %>% mutate(total = boys+girls)
+present <- present %>% mutate(prop_boys = boys/total)
+ggplot(present, aes(x=year, y=prop_boys)) + geom_line() + geom_point()
+
+present <- present %>% mutate(more_boys = boys > girls)
+present$more_boys
+
+present <- present %>% mutate(prop_boy_girl = boys/girls)
+ggplot(present, aes(x=year, y=prop_boy_girl)) + geom_line() + geom_point()
+
+present$year[which.max(present$total)]
+```
