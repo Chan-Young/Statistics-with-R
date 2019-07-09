@@ -1,0 +1,84 @@
+---
+title: "Introduction to Probaility"
+Week 3: 'Probaility'
+---
+
+### Getting Started
+
+### Load package
+
+```{r}
+library(statsr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+### Data
+
+```{r}
+data("kobe_basket")
+
+names(kobe_basket)  
+?kobe_basket
+str(kobe_basket)    # 133 obs, 6 variables
+```
+
+
+### Analysis
+
+## Q1. A streak length of 1 means one ___ followed by one miss.\[ \textrm{H M | M | H H M | M | M | M} \] => H - hit, M - miss. Their lengths are one, zero, two, zero, zero, zero 
+
+
+## Q2. A streak length of 0 means one ___ which must occur after a miss that ended the preceding streak.
+
+
+## Q3. False about the distribution of Kobe¡¯s streak lengths from the 2009 NBA finals.
+
+```{r}
+# counting streak lengths(variable)
+kobe_streak <- calc_streak((kobe_basket$shot))
+# plot - strak-kobe
+ggplot(data = kobe_streak, aes(x = length)) +
+  geom_histogram(binwidth = 1)
+
+```
+
+
+### Simulation in R
+
+```{r}
+# simulate flipping a fair coin
+coin_outcomes <- c("heads", "tails")
+sample(coin_outcomes, size = 1, replace = TRUE)
+
+# fair coin
+sim_fair_coin <- sample(coin_outcomes, size = 100, replace = TRUE)
+sim_fair_coin
+table(sim_fair_coin)
+
+# unfair coin
+sim_unfair_coin <- sample(coin_outcomes, size = 100, replace = TRUE, 
+                          prob = c(0.2, 0.8))
+sim_unfair_coin
+table(sim_unfair_coin)
+```
+
+
+### Simulating the Independent Shooter
+
+```{r}
+shot_outcomes <- c('H', 'M')
+sim_basket <- sample(shot_outcomes, size = 100, replace = TRUE)
+
+sim_streak <- calc_streak(sim_basket)
+ggplot(data = sim_streak, aes(x = length))+
+  geom_histogram(binwidth = 1)
+
+```
+
+
+## Q4. If you were to run the simulation of the independent shooter a second time, how would you expect its streak distribution to compare to the distribution from the exercise above?
+
+
+## Q5. How does Kobe Bryant¡¯s distribution of streak lengths compare to the distribution of streak lengths for the simulated shooter? Using this comparison, do you have evidence that the hot hand model fits Kobe¡¯s shooting patterns?

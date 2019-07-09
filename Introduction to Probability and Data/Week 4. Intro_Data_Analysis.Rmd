@@ -1,0 +1,157 @@
+---
+title: "Probability Distributions"
+week 4 : Example Exploratory Data Analysis
+---
+
+# Goal of this tutorial document
+# 1) reading in data
+# 2) dealing with blanks
+# 3) dealing with factors
+
+### Data
+
+```{r}
+load('selected_nzes2011.Rdata')
+library(dplyr)
+```
+
+
+### Analysis
+
+## Q1. the relationship between the party the person voted for
+
+```{r}
+selected_nzes2011 %>%
+  select(jpartyvote, jdiffvoting, singlefav) %>%          # object 'singlefav' not found
+  str()
+
+selected_nzes2011
+names(selected_nzes2011)                                  # search variables
+grep('singlefav', names(selected_nzes2011), value = TRUE) # search singlefav variable
+
+# count vote
+selected_nzes2011 %>%
+  group_by(jpartyvote) %>%
+  summarise(count = n())                                  # `"Don't know"` and `NA`.
+
+# only certainty people
+selected_nzes2011 %>%
+  filter(jpartyvote != "Don't know") %>%
+  group_by(jpartyvote) %>%
+  summarise(count = n())
+
+
+# count favourite
+selected_nzes2011 %>%
+  group_by(X_singlefav) %>%
+  summarise(count = n())
+
+# count known favourite
+selected_nzes2011 %>%
+  filter(!is.na(X_singlefav)) %>%  # ! : not
+  group_by(X_singlefav) %>%        
+  summarise(count = n())
+
+
+# filter on multiple variables
+selected_nzes2011 %>%
+  filter(!is.na(X_singlefav), jpartyvote != "Don't know") %>%
+  group_by(X_singlefav) %>%
+  summarise(count = n())
+
+
+# make sameparty
+selected_nzes2011 <- selected_nzes2011 %>%
+  mutate(sameparty = ifelse(jpartyvote == X_singlefav, 'same', 'different'))
+
+# view sameparty
+selected_nzes2011 %>%
+  group_by(jpartyvote, X_singlefav, sameparty) %>%
+  summarise(count = n())
+
+# filter keep same
+selected_nzes2011 %>%
+  group_by(jpartyvote, X_singlefav, sameparty) %>%
+  summarise(count = n()) %>%
+  filter(sameparty == 'same')
+
+# filter keep different
+selected_nzes2011 %>%
+  group_by(jpartyvote, X_singlefav, sameparty) %>%
+  summarise(count = n()) %>%
+  filter(sameparty == 'different')
+
+# filter keep na
+selected_nzes2011 %>%
+  group_by(jpartyvote, X_singlefav, sameparty) %>%
+  summarise(count = n()) %>%
+  filter(is.na(sameparty))
+```
+
+
+## Q2. Relationship between age of voters and how much they like the NZ First party
+
+```{r}
+str(selected_nzes2011$jnzflike)              # factor
+str(selected_nzes2011$jage)                  # numeric
+
+# numeric summary
+selected_nzes2011 %>%
+  summarise(agemean = mean(jage), agemedian = median(jage), agesd = sd(jage),
+            agemin = min(jage), agemax = max(jage))   #cuz, not reporting their age
+
+# mumeric summary no na
+selected_nzes2011 %>%
+  filter(!(is.na(jage))) %>%
+  summarise(agemean = mean(jage), agemedian = median(jage), agesd = sd(jage),
+            agemin = min(jage), agemax = max(jage))
+```
+
+
+### Approach 1 : Strongly liking and disliking NZ First and age
+# %in% : filtering for multiple values
+
+```{r}
+# pick from list
+selected_nzes2011 %>%
+  filter(jnzflike %in% c('0','10')) %>%
+  group_by(jnzflike) %>%
+  summarise(count = n())
+```
+
+
+### Approach 2 : Age and liking for NZ First
+
+```{r}
+# groups from threshold(numeric variable -> categorical variable)
+selected_nzes2011 <- selected_nzes2011 %>%
+  mutate(retiredage = ifelse(jage >= 65, 'retired age', 'working age'))
+selected_nzes2011 %>%
+  group_by(retiredage) %>%        
+  summarise(count = n())
+
+
+# numeric data error
+selected_nzes2011 %>%
+  group_by(retiredage) %>%
+  summarise(medlike = median(jnzflike))
+
+# change the type of the function, as.thingtochangeto(), error-version
+selected_nzes2011 <- selected_nzes2011 %>%
+  mutate(numlikenzf = as.numeric(jnzflike))
+
+# check it work right way
+selected_nzes2011 %>%
+  group_by(jnzflike, numlikenzf) %>%
+  summarise(count = n())
+
+
+# change the type of the function, correct conversion
+selected_nzes2011 <- selected_nzes2011 %>%
+  mutate(numlikenzf = as.numeric((as.character(jnzflike))))
+
+# checking correct conversion
+selected_nzes2011 %>%
+  group_by(jnzflike, numlikenzf) %>%
+  summarise(count = n())
+```
