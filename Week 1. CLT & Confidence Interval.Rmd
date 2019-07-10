@@ -1,0 +1,261 @@
+---
+title: "Central Limit Theorem and Confidence Interval"
+Week 1: sampling_distributions_Coursera.rmd
+---
+
+## Getting stated
+
+
+## load packages
+
+```{r}
+library(statsr)
+library(dplyr)
+library(shiny)
+library(ggplot2)
+```
+
+
+## Data
+
+```{r}
+data(ames)
+?ames
+str(ames)
+names(ames)
+# residential home sales in Ames between 2006 and 2010
+# the above ground living area of the house in square feet (`area`) and the sale price (`price`).
+```
+
+
+## Analysis
+
+```{r}
+ggplot(data = ames, aes(x = area))+
+         geom_histogram(binwidth = 250)
+
+summary <- ames %>%
+  summarise(mu = mean(area), pop_med = median(area),
+            sigma = sd(area), pop_iqr = IQR(area),
+            pop_min = min(area), pop_max = max(area),
+            pop_q1 = quantile(area, 0.25),  # first quartile, 25th percentile
+            pop_q3 = quantile(area, 0.75)) # third quartile, 75th percentile
+```
+
+
+Q1. which of the following is false?
+
+1. Thedistribution of areas of houses in Ames is unimodal and right-skewed.
+2. 50% of houses in Ames are smaller than 1,499.69 square feet.
+3. The middle 50% of the houses range between approximately 1,126 square feet and 1,742.7 square feet.
+4. The IQR is approximately 616.7 square feet.
+5. The smallest house is 334 square feet and the largest is 5,642 square feet.
+
+
+Q2. Suppose we took two more samples, one of size 100 and one of size 1000. Which would you think would provide a more accurate estimate of the population mean?
+
+1. Sample size of 50.
+2. Sample size of 100. 
+3. Sample size of 1000.
+
+```{r}
+# Describe the distribution of this sample? 
+# How does it compare to the distribution of the population? 
+
+samp1 <- ames %>%
+  sample_n(size=50)
+
+ggplot(data = samp1, aes(x = area)) +
+  geom_histogram(binwidth = 250)
+
+samp1 %>%
+  summarise(xbar = mean(area), pop_med = median(area), 
+            s = sd(area), pop_iqr = IQR(area),
+            pop_min = min(area), pop_max = max(area),
+            pop_q1 = quantile(area, 0.25),  # first quartile, 25th percentile
+            pop_q3 = quantile(area, 0.75))  # third quartile, 75th percentile
+
+samp1 %>%
+  summarise(x_bar = mean(area))
+
+ames %>%
+  sample_n(size = 50) %>%
+  summarise(x_bar = mean(area))
+```
+
+
+Q3. How many elements are there in this object called `sample_means_small`? 
+
+1. 0
+2. 3 
+3. 25 
+4. 100 
+5. 5,000 
+
+```{r}
+# sampling distribution until 15,000 samples
+sample_means50 <- ames %>%
+  rep_sample_n(size=50, reps=15000, replace=TRUE) %>%
+  summarise(x_bar = mean(area))
+
+ggplot(data = sample_means50, aes(x = x_bar)) +
+  geom_histogram(binwidth = 20)
+
+# How many elements are there in `sample_means50`? Describe the sampling distribution, and be sure to specifically note its center. Make sure to include a plot of the distribution in your answer.
+sample_means50 %>% 
+  summarise(mean = mean(x_bar))
+
+
+# **25 sample means** from **samples of size 10**, and put them in a data frame named `sample_means_small`. How many observations are there in this object called `sample_means_small`? What does each observation represent?
+
+sample_means_small <- ames %>%
+  rep_sample_n(size = 10, reps = 25, replace = TRUE) %>%
+  summarise(x_bar = mean(area))
+```
+
+
+Q4. Which of the following is **true** about the elements in the sampling distributions you created?
+
+1. Each element represents a mean square footage from a simple random sample of 10 houses. </li>
+2. Each element represents the square footage of a house. </li>
+3. Each element represents the true population mean of square footage of houses. </li>
+
+
+```{r}
+# Use the app below to create sampling distributions of means of `area`s from samples of size 10, 50, and 100. Use 5,000 simulations. What does each observation in the sampling distribution represent? How does the mean, standard error, and shape of the sampling distribution change as the sample size increases? How (if at all) do these values change if you increase the number of simulations?
+
+shinyApp(
+  ui <- fluidPage(
+    
+    # Sidebar with a slider input for number of bins 
+    sidebarLayout(
+      sidebarPanel(
+        
+        selectInput("selected_var",
+                    "Variable:",
+                    choices = list("area", "price"),
+                    selected = "area"),         
+        
+        numericInput("n_samp",
+                     "Sample size:",
+                     min = 1,
+                     max = nrow(ames),
+                     value = 30),
+        
+        numericInput("n_sim",
+                     "Number of samples:",
+                     min = 1,
+                     max = 30000,
+                     value = 15000) 
+        
+      ),
+      
+      # Show a plot of the generated distribution
+      mainPanel(
+        plotOutput("sampling_plot"),
+        verbatimTextOutput("sampling_mean"),
+        verbatimTextOutput("sampling_se")
+      )
+    )
+  ),
+  
+  # Define server logic required to draw a histogram
+  server <- function(input, output) {
+    
+    # create sampling distribution
+    sampling_dist <- reactive({
+      ames[[input$selected_var]] %>%
+        sample(size = input$n_samp * input$n_sim, replace = TRUE) %>%
+        matrix(ncol = input$n_samp) %>%
+        rowMeans() %>%
+        data.frame(x_bar = .)
+      #ames %>%
+      #  rep_sample_n(size = input$n_samp, reps = input$n_sim, replace = TRUE) %>%
+      #  summarise_(x_bar = mean(input$selected_var))
+    })
+    
+    # plot sampling distribution
+    output$sampling_plot <- renderPlot({
+      x_min <- quantile(ames[[input$selected_var]], 0.1)
+      x_max <- quantile(ames[[input$selected_var]], 0.9)
+      
+      ggplot(sampling_dist(), aes(x = x_bar)) +
+        geom_histogram() +
+        xlim(x_min, x_max) +
+        ylim(0, input$n_sim * 0.35) +
+        ggtitle(paste0("Sampling distribution of mean ", 
+                       input$selected_var, " (n = ", input$n_samp, ")")) +
+        xlab(paste("mean", input$selected_var)) +
+        theme(plot.title = element_text(face = "bold", size = 16))
+    })
+    
+    # mean of sampling distribution
+    output$sampling_mean <- renderText({
+      paste0("mean of sampling distribution = ", round(mean(sampling_dist()$x_bar), 2))
+    })
+    
+    # mean of sampling distribution
+    output$sampling_se <- renderText({
+      paste0("SE of sampling distribution = ", round(sd(sampling_dist()$x_bar), 2))
+    })
+  },
+  
+  options = list(height = 500) 
+)
+```
+
+
+Q5. It makes intuitive sense that as the sample size increases, the center of the sampling distribution becomes a more reliable estimate for the true population mean. Also as the sample size increases, the variability of the sampling distribution________. 
+
+1. decreases
+2. increases 
+3. stays the same 
+
+
+Q6. Which of the following is false? 
+1. The variability of the sampling distribution with the smaller sample size (`sample_means50`) is smaller than the variability of the sampling distribution with the larger sample size (`sample_means150`). 
+2. The means for the two sampling distribtuions are roughly similar. 
+3. Both sampling distributions are symmetric. 
+
+```{r}
+# Take a random sample of size 50 from `price`. Using this sample, what is your best point estimate of the population mean?
+
+ames %>%
+  sample_n(size = 50) %>%
+  summarise(x_bar = mean(price))
+
+
+# simulate the sampling distribution for $\bar{x}_{price}$ by taking 5000 samples from the population of size 50 and computing 5000 sample means.  
+# what would you guess the mean home price of the population to be?
+
+sample_means50 <- ames %>%
+  rep_sample_n(size = 50, reps=5000, replace=TRUE) %>%
+  summarise(x_bar_price = mean(price))
+
+mean(sample_means50$x_bar_price)
+
+ggplot(data = sample_means50, aes(x=x_bar_price)) +
+  geom_histogram(binwidth = 20)
+
+# Change your sample size from 50 to 150, describe the shape of this sampling distribution, and compare it to the sampling distribution for a sample size of 50. what would you guess to be the mean sale price of homes in Ames?
+
+sample_means150 <- ames %>%
+  rep_sample_n(size = 150, reps=5000, replace=TRUE) %>%
+  summarise(x_bar_price = mean(price))
+
+mean(sample_means150$x_bar_price)
+
+ggplot(data = sample_means150, aes(x=x_bar_price)) +
+  geom_histogram(binwidth = 20)
+```
+
+
+
+
+
+
+
+
+
+
+
