@@ -213,6 +213,7 @@ Q5. It makes intuitive sense that as the sample size increases, the center of th
 
 
 Q6. Which of the following is false? 
+
 1. The variability of the sampling distribution with the smaller sample size (`sample_means50`) is smaller than the variability of the sampling distribution with the larger sample size (`sample_means150`). 
 2. The means for the two sampling distribtuions are roughly similar. 
 3. Both sampling distributions are symmetric. 
