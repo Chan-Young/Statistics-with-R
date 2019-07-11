@@ -1,0 +1,149 @@
+---
+title: "Foundations for inference - Confidence intervals"
+Week 1: confidence_intervals_Coursera.rmd
+---
+
+## Setting Seed
+```{r}
+set.seed(20161234)
+```
+
+
+## Getting Started
+
+
+### Load package
+
+```{r}
+library(statsr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+### The data
+
+```{r}
+data(ames)
+
+n <- 60
+samp <- sample_n(ames, n)
+
+# Describe the distribution of homes in your sample.
+ggplot(samp, aes(x=area)) +
+  geom_histogram(binwidth = 250)
+```
+
+
+Q1. My distribution should be similar to others' distributions who also collect random samples from this population, but it is likely not exactly the same since it's a random sample.
+
+1. True. 
+2. False.
+
+
+## Confidence intervals
+
+```{r}
+# 95% confidence inteval
+z_star_95 <- qnorm(0.975)
+z_star_95
+
+samp %>%
+  summarise(lower = mean(area) + z_star_95 * (sd(area) / sqrt(n)),
+            upper = mean(area) - z_star_95 * (sd(area) / sqrt(n)))
+```
+
+
+Q2.  For the confidence interval to be valid, the sample mean must be normally distributed and have standard error Which of the following is not a condition needed for this to be true?
+
+1. The sample is random. 
+2. The sample size, 60, is less than 10% of all houses. 
+3. The sample distribution must be nearly normal. 
+
+
+Q3.  What does "95% confidence" mean?
+
+1. 95% of the time the true average area of houses in Ames, Iowa, will be in this interval. </li>
+2. 95% of random samples of size 60 will yield confidence intervals that contain the true average area of houses in Ames, Iowa. </li>
+3. 95% of the houses in Ames have an area in this interval. </li>
+4. 95% confident that the sample mean is in this interval. </li>
+
+```{r}
+# population parameters
+params <- ames %>%
+  summarise(mu = mean(area))
+
+# Does your confidence interval capture the true average size of houses in Ames?
+params 
+```
+
+
+Q4. What proportion of 95% confidence intervals would you expect to capture the true population mean?
+
+1.  1% 
+2.  5% 
+3. 95% 
+4. 99% 
+
+
+Obtain a random sample.Calculate the sample's mean and standard deviation, and use these to calculate and store the lower and upper bounds of the confidence intervals. Repeat these steps 50 times.
+
+```{r}
+ci <- ames %>%
+  rep_sample_n(size = n, reps = 50, replace = TRUE) %>%
+  summarise(lower = mean(area) - z_star_95 * (sd(area) / sqrt(n)),
+            upper = mean(area) - z_star_95 * (sd(area) / sqrt(n)))
+
+ci %>%
+  slice(1:5)
+
+ci <- ci %>%
+  mutate(capture_mu = ifelse(lower < params$mu & upper > params$mu, 'yes','no'))
+
+
+ci_data <- data.frame(ci_id = c(1:50, 1:50),
+                      ci_bounds = c(ci$lower, ci$upper),
+                      capture_mu = c(ci$capture_mu, ci$capture_mu))
+
+  
+ggplot(data = ci_data, aes(x = ci_bounds, y = ci_id, 
+                           group = ci_id, color = capture_mu)) +
+  geom_point(size = 2) +  # add points at the ends, size = 2
+  geom_line() +           # connect with lines
+  geom_vline(xintercept = params$mu, color = "darkgray") # draw vertical line
+```
+
+
+What proportion of your confidence intervals include the true population mean? Is this proportion exactly equal to the confidence level? If not, explain why.
+
+
+Q5. What is the appropriate critical value for a 99% confidence level?
+
+1. 0.01 
+2. 0.99  
+3. 1.96 
+4. 2.33 
+5. 2.58 
+
+```{r}
+qnorm(.99)
+-qnorm(0.5-0.99/2)
+```
+
+
+Q6. We would expect 99% of the intervals to contain the true population mean.
+
+1. True 
+2. False 
+
+```{r}
+# 99% confidence inteval
+z_star_99 <- qnorm(.995)
+z_star_99
+
+samp %>%
+  summarise(lower = mean(area) + z_star_99 * (sd(area) / sqrt(n)),
+            upper = mean(area) - z_star_99 * (sd(area) / sqrt(n)))
+
+params$mu
+```
