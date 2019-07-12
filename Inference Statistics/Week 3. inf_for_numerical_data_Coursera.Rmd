@@ -1,0 +1,157 @@
+---
+title: "Inference for numerical data"
+Week 3: inf_for_numerical_data_Coursera.Rmd
+---
+
+## Getting Started
+
+
+### Load packages
+
+```{r}
+library(statsr)
+library(dplyr)
+library(ggplot2)
+```
+
+
+### The data
+
+```{r}
+data(nc)
+str(nc)
+names(nc)
+?(nc)
+```
+
+variable         | description
+---------------- | ---------------------------------------------
+`fage`           | father's age in years.
+`mage`           | mother's age in years.
+`mature`         | maturity status of mother.
+`weeks`          | length of pregnancy in weeks.
+`premie`         | whether the birth was classified as premature (premie) or full-term.
+`visits`         | number of hospital visits during pregnancy.
+`marital`        | whether mother is `married` or `not married` at birth.
+`gained`         | weight gained by mother during pregnancy in pounds.
+`weight`         | weight of the baby at birth in pounds.
+`lowbirthweight` | whether baby was classified as low birthweight (`low`) or not (`not low`).
+`gender`         | gender of the baby, `female` or `male`.
+`habit`          | status of the mother as a `nonsmoker` or a `smoker`.
+`whitemom`       | whether mom is `white` or `not white`.
+
+
+Q1. There are 1,000 cases in this data set, what do the cases represent? 
+
+1. The hospitals where the births took place
+2. The fathers of the children 
+3. The days of the births 
+4.The births 
+  
+```{r}
+str(nc)
+```
+  
+
+## Exploratory data analysis
+
+Q2. How many mothers are we missing weight gain data from?
+
+1. 0 
+2. 13 
+3. 27 
+4. 31 
+
+```{r}
+summary(nc$gained)
+```
+
+
+Q3. Make side-by-side boxplots of `habit` and `weight`. Which of the following is false about the relationship between habit and weight?
+
+1. Median birth weight of babies born to non-smoker mothers is slightly higher than that of babies born to smoker mothers. 
+2. Range of birth weights of babies born to non-smoker mothers is greater than that of babies born to smoker mothers. 
+3. Both distributions are extremely right skewed. 
+4. The IQRs of the distributions are roughly equal. 
+
+```{r}
+ggplot(nc, aes(x=factor(habit), y=weight)) +
+  geom_boxplot()
+
+nc %>%
+  group_by(habit) %>%
+  summarise(mean_weight = mean(weight))
+```
+
+
+## Inference
+
+Are all conditions necessary for inference satisfied? You can compute the group sizes using the same `by` command above but replacing `mean(weight)` with `n()`.
+
+```{r}
+nc %>%
+  group_by(habit) %>%
+  summarise(n = n())
+```
+
+
+Q4.  What are the hypotheses for testing if the average weights of babies born to smoking and non-smoking mothers are different?
+
+1. $H_0: \mu_{smoking} = \mu_{non-smoking}$; $H_A: \mu_{smoking} > \mu_{non-smoking}$ 
+2. $H_0: \mu_{smoking} = \mu_{non-smoking}$; $H_A: \mu_{smoking} \ne \mu_{non-smoking}$ 
+3. $H_0: \bar{x}_{smoking} = \bar{x}_{non-smoking}$; $H_A: \bar{x}_{smoking} > \bar{x}_{non-smoking}$ 
+4. $H_0: \bar{x}_{smoking} = \bar{x}_{non-smoking}$; $H_A: \bar{x}_{smoking} > \bar{x}_{non-smoking}$ 
+5. $H_0: \mu_{smoking} \ne \mu_{non-smoking}$;  $H_A: \mu_{smoking} = \mu_{non-smoking}$ 
+
+```{r}
+inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ht", null = 0, 
+          alternative = "twosided", method = "theoretical")
+```
+
+- statistic   :  the sample statistic, the population parameter we're estimating.
+- type        :  of inference , hypothesis test (ht) or a confidence interval (ci)
+- null        : this case is 0
+- alternative :  less, greater, or twosided 
+- method      : theoretical or simulation
+
+
+Q5.  Change the `type` argument to `"ci"` to construct and record a confidence interval for the difference between the weights of babies born to nonsmoking and smoking mothers, and interpret this interval in context of the data. Note that by default you'll get a 95% confidence interval. If you want to change the confidence level, add a new argument (`conf_level`) which takes on a value between 0 and 1. Also note that when doing a confidence interval arguments like `null` and `alternative` are not useful, so make sure to remove them.
+
+1. We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds lighter at birth than babies born    to smoker mothers. 
+2. We are 95% confident that the difference in average weights of babies whose moms are smokers and nonsmokers is between 0.05 to    0.58 pounds. 
+3. We are 95% confident that the difference in average weights of babies in this sample whose moms are smokers and nonsmokers is     between 0.05 to 0.58 pounds. 
+4. We are 95% confident that babies born to nonsmoker mothers are on average 0.05 to 0.58 pounds heavier at birth than babies born    to smoker mothers. 
+
+```{r}
+# inference
+inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ci", null = 0, 
+          alternative = "twosided", method = "theoretical")
+
+# alternative methond
+inference(y = weight, x = habit, data = nc, statistic = "mean", type = "ci", 
+          method = "theoretical", order = c("smoker","nonsmoker"))
+```
+
+
+Q6. Calculate a 99% confidence interval for the average length of pregnancies (`weeks`). Note that since you're doing inference on a single population parameter, there is no explanatory variable, so you can omit the `x` variable from the function. Which of the following is the correct interpretation of this interval?
+
+1. (38.1526 , 38.5168)
+2. (38.0892 , 38.5661)
+3. (6.9779 , 7.2241)
+4. (38.0952 , 38.5742)
+
+```{r}
+inference(y = weeks, data = nc, statistic = 'mean', type = 'ci',
+          conf_level = .99, method = 'theoretical',
+          order = c('smoker', 'nonsmoker'))
+```
+
+
+Q7. Now, a non-inference task: Determine the age cutoff for younger and mature 
+mothers. Use a method of your choice, and explain how your method works.
+
+```{r}
+nc %>%
+  group_by(mature) %>%
+  summarise(min_age = min(mage), max_age = max(mage))
+```
