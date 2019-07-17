@@ -1,0 +1,209 @@
+---
+title: "Inference for categorical data"
+week 4: inf_for_categorical_data_Coursera.rmd
+---
+
+
+## Getting Started
+
+### Load packages
+
+```{r load-packages, message=FALSE}
+library(statsr)
+library(dplyr)
+library(ggplot2)
+```
+
+### The survey
+
+(https://www.scribd.com/document/136318147/Win-gallup-International-Global-Index-of-Religiosity-and-Atheism-2012).
+
+
+1. How many people were interviewed for this survey? 
+
+1) A poll conducted by WIN-Gallup International surveyed       51,000 people from 57 countries. 
+2) A poll conducted by WIN-Gallup International surveyed       52,000 people from 57 countries. 
+3) A poll conducted by WIN-Gallup International surveyed       51,917 people from 57 countries. 
+4) A poll conducted by WIN-Gallup International surveyed       51,927 people from 57 countries. 
+
+
+2. Which of the following methods were used to gather information? 
+
+1) Face to face 
+2) Telephone 
+3) Internet
+4) All of the above 
+
+
+3. True / False: In the first paragraph, several key findings are reported. These percentages appear to be 
+
+1) True 
+2) False 
+
+
+4. True / False:The title of the report is "Global Index of Religiosity and Atheism". To generalize the report's findings to the global human population, We must assume that the sample was a random sample from the entire population in order to be able to generalize the results to the global human population. This seems to be a reasonable assumption.
+
+1) True  
+2) False 
+
+
+### The data
+
+```{r load-data}
+data(atheism)
+
+str(atheism)
+```
+
+5. What does each row of Table 6 correspond to? 
+
+1) Countries 
+2) Individual Persons 
+3) Religions
+
+
+6. What does each row of `atheism` correspond to?
+
+1) Countries  
+2) Individual Persons 
+3) Religions 
+
+
+7. Next, calculate the proportion of atheist responses in the United States in 2012, i.e. in `us12`. True / False: This percentage agrees with the percentage in Table~6.
+
+1) True 
+2) False 
+
+```{r perc-atheist-us12}
+us12 <- atheism %>%
+  filter(nationality == "United States" , atheism$year == "2012")
+
+us12 %>%
+  summarize(sum(response == 'atheist')/n())
+```
+
+
+## Inference on proportions
+
+
+Write out the conditions for inference to construct a 95% confidence interval for the proportion of atheists in the United States in 2012. Are you confident all conditions are met?
+
+
+```{r us-atheism-ci}
+inference(y = response, data = us12, statistic = "proportion", type = "ci", method = "theoretical", success = "atheist")
+```
+
+
+<div id="exercise">
+**Exercise**: Imagine that, after reading a front page story about the latest public opinion poll, a family member asks you, "What is a margin of error?" In one sentence, and ignoring the mechanics behind the calculation, how would you respond in a way that conveys the general concept?
+
+
+8. Based on the R output, what is the margin of error for the estimate of the proportion of the proportion of atheists in US in 2012? 
+
+1) The margin of error for the estimate of the proportion of    atheists in the US in 2012 is 0.05. 
+2) The margin of error for the estimate of the proportion of    atheists in the US in 2012 is 0.025. 
+3) The margin of error for the estimate of the proportion of    atheists in the US in 2012 is 0.0135. 
+
+
+```{r me-perc-atheist-us12}
+1.96 * sqrt(0.05*(1-0.05)/1002)
+```
+
+
+**Exercise**: Using the inference function, calculate confidence intervals for the proportion of atheists in 2012 in two other countries of your choice, and report the associated margins of error. 
+
+```{r me-perc-atheist-other-countries}
+canada12 <- atheism %>%
+  filter(nationality == 'Canada', atheism$year == '2012')
+
+inference(y = response, data = canada12, statistic = 'proportion', type = 'ci', method = 'theoretical', success = 'atheist')
+
+me_ca <- 1.96 * sqrt(0.0898*(1-0.0898)/1002)
+me_ca
+```
+
+```{r}
+china12 <- atheism %>% 
+  filter(nationality=='China', atheism$year=='2012')
+
+inference(y = response, data = china12, statistic = 'proportion', type = 'ci', method = 'theoretical', success = 'atheist')
+
+me_ch <- 1.96 * sqrt(0.47*(1-0.47)/500)
+me_ch
+```
+
+
+## How does the proportion affect the margin of error?
+
+Imagine you've set out to survey 1000 people on two questions: are you female? and are you left-handed? Since both of these sample proportions were calculated from the same sample size, they should have the same margin of error, right? Wrong!  While the margin of error does change with sample size, it is also affected by the proportion.
+
+Think back to the formula for the standard error: $SE = \sqrt{p(1-p)/n}$. This is then used in the formula for the margin of error for a 95% confidence interval: $ME = 1.96\times SE = 1.96\times\sqrt{p(1-p)/n}$. Since the population proportion $p$ is in this $ME$ formula, it should make sense that the margin of error is in some way dependent on the population proportion. We can visualize this relationship by creating a plot of $ME$ vs. $p$.
+
+The first step is to make a vector `p` that is a sequence from $0$ to $1$ with each number separated by $0.01$. We can then create a vector of the margin of error (`me`) associated with each of these values of `p` using the familiar approximate formula ($ME = 1.96 \times SE$). Lastly, we plot the two vectors against each other to reveal their relationship.
+
+```{r me-plot}
+d <- data.frame(p <- seq(0, 1, 0.01))
+n <- 1000
+d <- d %>%
+  mutate(me = 1.96*sqrt(p*(1 - p)/n))
+ggplot(d, aes(x = p, y = me)) +
+  geom_line()
+```
+
+9. Which of the following is false about the relationship between $p$ and $ME$. 
+
+1) The $ME$ reaches a minimum at $p = 0$.  
+2) The $ME$ reaches a minimum at $p = 1$.  
+3) The $ME$ is maximized when $p = 0.5$.
+4) The most conservative estimate when calculating a           confidence interval occurs when $p$ is set to 1. 
+
+
+10. True / False: There is convincing evidence that Spain has seen a change in its atheism index between 2005 and 2012. <br><br> *Hint:* Create a new data set for respondents from Spain. Then use their responses as the first input on the `inference`, and use `year` as the grouping variable.
+
+1) True 
+2) False 
+
+```{r spain-05-12}
+spain <- atheism %>%
+  filter(nationality == 'Spain')
+
+inference(y = response, x = as.factor(year), data = spain, statistic = "proportion", type = "ht", null = 0, success = "atheist", alternative = "twosided", method = "theoretical")
+```
+
+
+11. True / False: There is convincing evidence that the United States has seen a change in its atheism index between 2005 and 2012.
+
+1)  True  
+2) False 
+
+```{r us-05-12}
+us <- atheism %>%
+  filter(nationality == 'United States')
+
+inference(y = response, x = as.factor(year), data = us, statistic = 'proportion', type = 'ht', null = 0, success = 'atheist', alternative = 'twosided', method = 'theoretical')
+```
+
+
+12. If in fact there has been no change in the atheism index in the countries listed in Table 4, in how many of those countries would you expect to detect a change (at a significance level of 0.05) simply by chance? <br><br> *Hint:* Type 1 error.
+
+1) 0 
+2) 1 
+3) 1.95 
+4) 5 
+
+```{r type1}
+39 * 0.05
+```
+
+
+13. Suppose you're hired by the local government to estimate the proportion of residents that attend a religious service on a weekly basis. According to the guidelines, the estimate must have a margin of error no greater than 1% with 95% confidence. You have no idea what to expect for $p$. How many people would you have to sample to ensure that you are within the guidelines? <br><br> *Hint:* Refer to your plot of the relationship between $p$ and margin of error. Do not use the data set to answer this question.
+
+1) 2401 people 
+2) At least 2401 people 
+3) 9604 people 
+4) At least 9604 people 
+
+```{r sample-size}
+1.96 ^ 2 * 0.5 * (1-0.5)/0.01^2
+```
+
