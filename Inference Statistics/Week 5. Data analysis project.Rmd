@@ -1,0 +1,154 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+* * *
+
+## Part 1: Data
+
+This extract of the General Social Survey (GSS) Cumulative File 1972-2012 provides a sample of selected indicators in the GSS for statistical analysis purpose. The file removed missing values from the reponses and recreated factor variables based on original survey, GSS.
+
+The GSS aims to gather data on contemporary American society in order to monitor and explain trends and overall feature of the Unites States. GSS questions cover a diverse range of issues including national spending priorities, marijuana use, crime and punishment, race relations, quality of life, confidence in institutions, and sexual behavior. Due to GSS is made of high-quality data which is easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting.
+
+Data is collected by face-to-face interviews, computer-assisted personal interview began in the 2002 GSS. Sample was randomly selected from all over the United States, thus the result are generalizable to the GSS target population. However, from these smaple set, we cannot infer causation because this is an observational study with no random assignment.
+
+The data is consisted of 57,061 observation with 114 variables. The sample is collected from 1972 to 2012 and the age of sample is 18 years to 89 years(mean 45.7, median 43). Sex is divided into 25,146 males and 31,915 females and the race would be 46,350 white people, 7,926 Black people and the number of others is 2,785. Lastly, the periods education year is seperated from 0 to 20 years(mean 12.75, median 12). 
+
+
+
+* * *
+
+## Part 2: Research question
+
+The research question is whether respondents who possible to suicide if bankrupt or who do not make make more money. In this case, 'coninc' variable(Total family income in constant dollars) and 'suicide2' variable(Suicide if bankrupt) will be the object of examination. 
+
+```{r}
+str(gss$coninc)
+str(gss$suicide2)
+```
+coninc: Total family income in constant dollars
+suicide2: Suicide if bankrupt
+
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+Create new data frame, removing NA in coninc.
+
+```{r}
+Familyincome <- gss %>%
+  filter(!(is.na(coninc)))
+```
+
+Mean salaries across the years.
+
+```{r}
+Familyincome %>%
+  group_by(year) %>%
+  summarise(mean_FI = mean(coninc))
+```
+
+Create new data frame, focusing on the most recent year 2012.
+
+```{r}
+gss2012 <- Familyincome %>%
+  filter(year == '2012')
+```
+
+Summary of 2012 total family income, mean 48,385 dollar.
+
+```{r}
+summary(gss2012$coninc)
+```
+
+Summay show mean salaries by who will suicide if bankrupt or not.
+
+```{r}
+gss2012 %>%
+  filter(suicide2 != 'NA', coninc != 'NA') %>%
+  group_by(suicide2) %>%
+  summarise(mean = mean(coninc), SD = sd(coninc), IQR = IQR(coninc), n=n())
+```
+
+Side bu side box plot are good way to search for any relationships between two variables. It shows that there is a difference of salaries between who will suicide if bankrupt or not.
+
+```{r}
+gss2012_S_C <- gss2012 %>%
+  filter(suicide2 != 'NA', coninc != 'NA')
+
+ggplot(gss2012_S_C, aes(x = suicide2, y = coninc)) +
+  geom_boxplot()
+```
+
+
+
+* * *
+
+## Part 4: Inference
+
+In inference analysis, I analysed confidence interval and hypothesis test. Calculate a 95 per cent confidence interval of the difference between who will suicide if bankrupt or not, with a bootstrap method. Made a comparison of the income means with a hypothesis test with null distribution. This hypothesis test was made with considering who suicide if bankrupt have higher total family income than who do not suicide if bankrupt.
+
+H_0 : mean salary who will suicide if bankrupt is not different from the mean who do not suicide if bankrupt.
+
+H_1 : mean salary who will suicide if bankrupt higher than the mean salary of who do not suicide if bankrupt
+
+
+# Confidence Interval
+
+95% confident that the true mean of the difference in salary between who will suicide if bankrupt and who will not suicide if bankrupt lays between 2,343 and 22,330 dollars.
+
+```{r}
+
+inference(y = coninc, x = suicide2, data = gss2012_S_C, statistic = 'mean', type='ci', null = 0, method = 'simulation', boot_method = 'se', nsim = 15000, alternative = 'twosided' )
+
+```
+
+Response variable: numerical, Explanatory variable: categorical (2 levels)
+n_Yes = 132, y_bar_Yes = 58915.9924, s_Yes = 56240.8917
+n_No = 1012, y_bar_No = 46523.6729, s_No = 44907.1672
+95% CI (Yes - No): (2343.7466 , 22440.8924)
+
+
+# Hypothesis Tesing
+
+P-value(.0082) is lower than significant level(.05), thus we can rejct the null hypothesis.
+
+```{r}
+inference(y = coninc, x = suicide2, data = gss2012_S_C, statistic = 'mean', type = 'ht', null = 0, alternative = 'greater', method='theoretical')
+```
+
+Response variable: numerical
+Explanatory variable: categorical (2 levels) 
+n_Yes = 132, y_bar_Yes = 58915.9924, s_Yes = 56240.8917
+n_No = 1012, y_bar_No = 46523.6729, s_No = 44907.1672
+H0: mu_Yes =  mu_No
+HA: mu_Yes > mu_No
+t = 2.4324, df = 131
+p_value = 0.0082
+
+
+As a result, we can conclude that people who suicide if bankrupt make significantly higher salaries that who do not suicide if bankrupt. This conclusion was reached after performing the hypothesis testing, which yielded a p-value that was indicative of a sufficient evidence to reject the null hypothesis, which was that no difference in mean salaries between people who suicide if bankrupt and who do not.
