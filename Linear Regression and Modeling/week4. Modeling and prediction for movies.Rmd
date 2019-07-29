@@ -1,0 +1,488 @@
+---
+title: "Modeling and prediction for movies"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+```{r}
+Sys.setlocale('LC_ALL','C')
+```
+
+### Load packages
+```{r}
+library(dplyr)
+library(statsr)
+library(GGally)
+library(corrplot)
+library(ggplot2)
+```
+
+### Load data
+
+```{r load-data}
+setwd('C:/Users/chanl/Documents/Statistics with R_Coursera/Introduction to Probaility and Data/Statistics-with-R/Linear Regression')
+load('movies.RData')
+```
+
+
+* * *
+
+## Part 1: Data
+
+This is an observational study which uses a random sample of movie information. Since the data is randomly selected not randomly assigned, we can only make generalizable conclusion to population, not causality. The dataset contains information about 651 movies released before 2016 and there are stored across 32 variables. 
+
+* * *
+
+## Part 2: Research question
+
+After having a look at the dataset I concluded that I will try to find out the relationship between audience¡¯s score and movie's popularity and type.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+# Analyse the Data
+Checking the structure of the data using the code below.
+
+```{r}
+str(movies)
+```
+
+ **Numerical:**
+ 
+* audience_score (response variable)
+* imdb_rating (popularity)
+* imdb_num_votes (int, popularity)
+* critics_score (popularity)
+
+
+**Categorical:**
+
+* title_type (type)
+* genre (type)
+* mpaa_rating (type)
+* critics_rating (popularity)
+* audience_rating   (popularity)
+* best_pic_nom (popularity)
+* best_pic_win (popularity)
+
+
+# Getting Data for the model
+
+```{r}
+mv <- movies %>%
+  select(audience_score, imdb_rating, imdb_num_votes, critics_score, title_type, genre, mpaa_rating, critics_rating, audience_rating, best_pic_nom, best_pic_win)
+```
+
+
+# Analyze the structure of Model Data
+
+```{r}
+str(mv)
+```
+
+
+# Removing missing data 
+
+```{r}
+complete <- complete.cases(mv)
+mv <- mv[complete,]
+dim(mv)
+```
+
+
+# Summarize of Model Data
+
+```{r}
+summary(mv)
+```
+
+# Data analysis in numerical vaiables
+
+
+ **Numerical:**
+
+* audience_score (response variable)
+* imdb_rating (popularity)
+* imdb_num_votes (int, popularity)
+* critics_score (popularity)
+
+
+# Summary statistics and distribution of the response variable(audience_score)
+
+```{r}
+ggplot(data = mv, aes(x=audience_score)) +
+  geom_histogram(binwidth = 5, color='grey', fill='black')
+```
+
+: Moderately left skewd
+
+
+# Corealation - 1.
+
+```{r}
+num_cols <- c(1,2,3,4)
+
+ggpairs(mv, 
+        columns = num_cols, 
+        upper = list(continuous = wrap("cor", size = 5)), 
+        diag = list(continuous = wrap("barDiag", colour = "darkgrey")), 
+        lower = list(continuous = wrap("smooth", colour = 'darkgrey')))  
+```
+
+: Exclude critics_score due to collinearty with imdb_rating
+: imdb_num_votes variable is not strongly correlated with the other variables
+
+
+# Distribution of imdb_num_votes
+
+```{r}
+ggplot(mv, aes(imdb_num_votes)) +
+  geom_histogram(fill='steelblue')+
+  labs(title = 'Distribution of Variable: imdb_num_votes')
+
+summary(mv$imdb_num_votes)
+```
+
+: weak correlation
+
+
+# Change to log
+
+```{r}
+ggplot(mv, aes(log10(imdb_num_votes))) +
+  geom_histogram(fill='steelblue')+
+  labs(title = 'Distribution of Log Transformed Variable: log10(imdb_num_votes)')
+
+```
+
+: The imdb_rating variable can now be seen to be nearly normal, and therefore suitable to use in the model.
+
+
+# Relationship between imdb_num_votes (explanatory variable) and audience score (response variable)
+
+```{r}
+ggplot(mv, aes (x = log10(imdb_num_votes), y = audience_score)) + 
+  geom_point(color = '#56B4E9') + 
+  geom_smooth(method = 'lm', color = 'darkred', se=FALSE) + 
+  labs(title = "Scatter Plot of audience_score Vs log10(imdb_num_votes)" )
+```
+
+: Moderate positive linear relationship
+
+
+# Distribution of imdb_rating
+
+```{r}
+ggplot(mv, aes(imdb_rating)) +
+  geom_histogram(bins=30, fill='#E69F00')+
+  labs(title = 'Distribution of Variable: imdb_rating')
+```
+
+: Slightly left skewed
+
+
+# Relationship between imdb_rating (explanatory variable) and audience score (response variable)
+
+```{r}
+ggplot(mv, aes (x = imdb_rating , y = audience_score)) + 
+  geom_point(color = '#E69F00') + 
+  geom_smooth(method = 'lm', color = 'darkred', se=FALSE) + 
+  labs(title = "Scatter Plot of audience_score Vs imdb_rating" )
+
+summary(mv$imdb_rating)
+```
+
+: Strong positive linear relationship
+
+
+# Relationship between critics_score (explanatory variable) and audience score (response variable)
+
+```{r}
+ggplot(mv, aes (x = critics_score, y = audience_score)) + 
+  geom_point(color = '#999999') + 
+  geom_smooth(method = 'lm', color = 'darkred', se=FALSE) + 
+  labs(title = "Scatter Plot of audience_score Vs critics_score" )
+```
+
+: Strong positive linear relationship, but remove due to collineartly problem
+
+## Data analysis in categorical vaiables
+
+**Categorical:**
+
+* title_type (type)
+* genre (type)
+* mpaa_rating (type)
+* critics_rating (popularity)
+* audience_rating   (popularity)
+* best_pic_nom (popularity)
+* best_pic_win (popularity)
+
+
+# title_type (type)
+
+```{r}
+plot(mv$title_type, ylab='num of movies', xlab='Movie type', col=rainbow((3)))
+```
+
+
+# genre (type)
+
+```{r}
+plot(mv$genre, ylab='num of movies', xlab='Movie gene', col=rainbow((4)), axis = 0.01, las = 2)
+```
+
+
+# mpaa_rating (type)
+
+```{r}
+plot(mv$mpaa_rating, ylab='num of movies', xlab='Movie mpaa rating', col=rainbow((5)))
+```
+
+
+# critics_rating (popularity)
+
+```{r}
+plot(mv$critics_rating, ylab='num of movies', xlab='Movie critics rating', col=rainbow((6)))
+```
+
+
+# audience_rating   (popularity)
+
+```{r}
+plot(mv$audience_rating, ylab='num of movies', xlab='Movie audience rating', col=rainbow((7)))
+```
+
+
+# best_pic_nom (popularity)
+
+```{r}
+plot(mv$best_pic_nom, ylab='num of movies', xlab='Movie nominated for a best picture Oscar', col=rainbow((10)))
+```
+
+
+# best_pic_win (popularity)
+
+```{r}
+plot(mv$best_pic_win, ylab='num of movies', xlab='Movie won a best picture Oscar', col=rainbow((10)))
+```
+
+
+
+* * *
+
+## Part 4: Modeling
+
+Model selection by backwards elimination using p-value
+
+
+# Full model
+
+```{r}
+FM <- lm(audience_score ~
+           imdb_rating+
+           title_type+
+           genre+
+           mpaa_rating+
+           critics_rating+
+           audience_rating  +
+           best_pic_nom+
+           best_pic_win, data=mv
+           )
+summary(FM)
+
+# Multiple R-squared:  0.8887,	Adjusted R-squared:  0.8846
+
+# Coefficients:
+#                                Estimate Std. Error t value Pr(>|t|)  
+# title_typeFeature Film           2.4689     2.5595   0.965   0.3351    
+# title_typeTV Movie               1.0011     4.0337   0.248   0.8041  
+```
+
+
+# Full model with removing variable title_type
+
+```{r}
+FM_2 <- lm(audience_score ~ 
+           imdb_rating+
+           genre+
+           mpaa_rating+
+           critics_rating+
+           audience_rating  +
+           best_pic_nom+
+           best_pic_win, data=mv
+           )
+summary(FM_2)
+
+# Multiple R-squared:  0.8885,	Adjusted R-squared:  0.8847 
+
+# Coefficients:
+#                                Estimate Std. Error t value Pr(>|t|)
+# mpaa_ratingNC-17                -0.5948     5.2113  -0.114   0.9092    
+# mpaa_ratingPG                   -0.4266     1.8871  -0.226   0.8212    
+# mpaa_ratingPG-13                -1.4273     1.9249  -0.742   0.4587    
+# mpaa_ratingR                    -1.4532     1.8668  -0.778   0.4366    
+# mpaa_ratingUnrated              -1.0912     2.1314  -0.512   0.6089
+```
+
+
+# Full model with removing variable title_type and mpaa_rating
+
+```{r}
+FM_3 <- lm(audience_score ~ 
+           imdb_rating+
+           genre+
+           critics_rating+
+           audience_rating  +
+           best_pic_nom+
+           best_pic_win, data=mv
+           )
+summary(FM_3)
+
+# Multiple R-squared:  0.888,	Adjusted R-squared:  0.8852
+
+# Coefficients:
+#                                Estimate Std. Error t value Pr(>|t|)
+# best_pic_winyes                -2.29545    2.98237  -0.770 0.441780
+```
+
+
+# Full model with removing variable title_type, mpaa_rating and best_pic_win
+
+```{r}
+FM_4 <- lm(audience_score ~ 
+           imdb_rating+
+           genre+
+           critics_rating+
+           audience_rating  +
+           best_pic_nom
+           , data=mv
+           )
+summary(FM_4)
+
+# Multiple R-squared:  0.8879,	Adjusted R-squared:  0.8853 
+```
+
+
+# Analyze the final model
+
+```{r}
+summary(FM_4)
+```
+
+```{r}
+anova(FM_4)
+```
+
+
+```{r}
+coefficients(FM_4)
+```
+
+: The ANOVA output confirms the significance of the individual predictors, except variable best_pic_nom.
+The linear regression model output confirm the significance of the individual predictors as well, but it also confirms the significance of the model as a whole (i.e., F-statistic 335.5 on 15 and 635 DF, p-value:< 2.2e-16).
+Finally, the proportion of variability in the response variable explained by the model is 88.53% (i.e. adjusted R-square).
+
+
+## Model Diagnostics i.e. Checking the conditions graphically
+
+# Check for linearity
+Checking for the linear reationship between numerical predictors and residuals
+
+```{r}
+plot(FM_4$residuals ~ mv$imdb_rating, main='Linearity Condition')
+```
+
+: No descernable pattern
+
+
+# Check for normality
+
+```{r}
+qqnorm(FM_4$residual, main='Normality Condition')
+qqline(FM_4$residual, main='Normality Condition')
+```
+
+: The majority of the points lie on the line and no appaeent outliners
+
+
+```{r}
+hist(FM_4$residuals, prob=TRUE, main="Normality Condition")
+lines(density(FM_4$residuals), col="darkblue", lwd=5)
+```
+
+: Nearly normal distribution
+
+
+# Check for variability
+
+```{r}
+plot(FM_4$residuals ~ FM_4$fitted.values, main='Variability Conditions')
+```
+
+```{r}
+plot(abs(FM_4$residuals) ~ FM_4$fitted.values, main='Variability Conditions')
+```
+
+: No visibls fan pattern
+
+
+# Check for independancy
+
+```{r}
+plot(FM_4$residuals, main='Independany Conditions')
+```
+
+: Randomly scatterd around zero
+
+
+
+* * *
+
+## Part 5: Prediction
+
+The model can now be used to predict the auidence score of a movie. The chosen test movie is Avengers:Endgame (2019).
+
+```{r}
+endgame = data.frame(genre = 'Action & Adventure', 
+                     mpaa_rating = 'PG-13', 
+                     imdb_rating = 8.7, 
+                     imdb_num_votes = 487015, 
+                     best_pic_nom = 'no', 
+                     best_pic_win = 'no', 
+                     top200_box = 'yes',
+                     audience_rating <- "Upright",
+                     critics_rating <- "Fresh",
+                     audience_score <- 91)
+```
+
+
+# Predicting the audience score
+
+```{r}
+myPrediction <- round(predict(FM_4, endgame), digits = 0)
+c(myPrediction, endgame$audience_score)
+```
+
+
+# Estimate and interpret the prediction confidence interval
+
+```{r}
+ConfidenceInterval <- predict(FM_4, endgame, interval="confidence")
+ConfidenceInterval
+```
+
+: 95% confident that, all else being equal, the predicted audience score for the movie 'Avengers:Endgame' will be between 90.37 and 95.26 on average.
+
+
+* * *
+
+## Part 6: Conclusion
+
+Explanatory data analysis was of great help in providing the insight on what data items to include in the model or not to. The modeling methodology of evaluating both significance and variablity of each predictor. The model that very precisely answered the research question and the model predicted the audience score correctly. The actual audience score of Avengers:Endgame is 91 and it is placed between 90.37 and 95.26.
